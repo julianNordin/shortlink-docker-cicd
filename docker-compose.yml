@@ -1,0 +1,19 @@
+# Dev dependencies only at this stage: the API still runs on the host via `dotnet run`.
+# The api service joins this file in Phase 08.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: shortlink-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shortlink}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shortlink}
+      POSTGRES_DB: ${POSTGRES_DB:-shortlink}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Named volume, not a bind mount: Postgres needs Linux file permissions that a
+      # Windows host directory can't provide.
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
