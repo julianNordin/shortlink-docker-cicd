@@ -10,6 +10,17 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-shortlink}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      # `$$` so Compose leaves the variable alone and the container's own shell expands it.
+      # `-d` makes this probe the database rather than only the socket: on first boot the
+      # entrypoint starts a temporary server to run initdb, and a socket-only check goes
+      # green against that one before the real database exists.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      # initdb on a cold volume takes a few seconds; failures before this elapses don't count.
+      start_period: 10s
     volumes:
       # Named volume, not a bind mount: Postgres needs Linux file permissions that a
       # Windows host directory can't provide.
