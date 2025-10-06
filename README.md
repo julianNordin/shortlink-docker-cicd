@@ -38,7 +38,40 @@ dotnet build
 dotnet test
 ```
 
-Running instructions land in Phase 03 (dev database) and Phase 08 (whole stack in one command).
+Only PostgreSQL is containerised at this stage — the API still runs on the host with
+`dotnet run`. Phase 08 moves the whole stack into Compose.
+
+## Development database
+
+Postgres runs as a container, so there is nothing to install on the host:
+
+```bash
+docker compose up -d db
+```
+
+First start takes a few seconds while `initdb` creates the data directory. The service has a
+`pg_isready` healthcheck, so Compose can tell you when it is actually ready:
+
+```bash
+docker compose ps                                  # STATUS column shows (healthy)
+docker compose exec -T db pg_isready -U shortlink  # or ask Postgres directly
+docker compose logs -f db                          # follow the logs
+```
+
+The user, password, and database name all default to `shortlink`, on port 5432. To change any of
+them, copy `.env.example` to `.env` and edit it — Compose reads that file automatically:
+
+```bash
+cp .env.example .env
+```
+
+Data lives in a named volume rather than a host directory, because Postgres needs Linux file
+ownership that a Windows folder cannot provide. It survives restarts:
+
+```bash
+docker compose down     # stop the container, keep the data
+docker compose down -v  # also delete the volume; next start is an empty database
+```
 
 ## Project structure
 
@@ -51,8 +84,8 @@ ShortLink.Api.Tests/      # xUnit unit + integration tests
 ## Roadmap
 
 - [x] Phase 01 — Solution scaffold, test project, README
-- [ ] Phase 02 — Domain model and short-code generation
-- [ ] Phase 03 — Dev PostgreSQL via Docker Compose
+- [x] Phase 02 — Domain model and short-code generation
+- [x] Phase 03 — Dev PostgreSQL via Docker Compose
 - [ ] Phase 04 — EF Core + Npgsql persistence and first migration
 - [ ] Phase 05 — API endpoints: shorten, redirect, click counter, stats
 - [ ] Phase 06 — Unit tests and Testcontainers integration tests
