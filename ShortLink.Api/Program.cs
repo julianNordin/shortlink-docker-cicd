@@ -19,4 +19,6 @@ builder.Services.AddScoped<IUrlService, UrlService>();
 
 var app = builder.Build();
 
+await DbInitializer.MigrateAsync(app.Services);
+
 app.Run();
