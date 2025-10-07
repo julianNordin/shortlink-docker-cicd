@@ -15,7 +15,7 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 builder.Services.AddSingleton<IShortCodeGenerator, ShortCodeGenerator>();
-builder.Services.AddSingleton<IUrlService, InMemoryUrlService>();
+builder.Services.AddScoped<IUrlService, UrlService>();
 
 var app = builder.Build();
 
