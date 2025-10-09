@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ShortLink.Api.Contracts;
+using ShortLink.Api.Domain;
 using ShortLink.Api.Data;
 using ShortLink.Api.Services;
 
@@ -13,6 +14,10 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
         "No 'Default' connection string. Set ConnectionStrings__Default, or run with the " +
         "Development environment and start the database with `docker compose up -d db`.");
 
+// Makes unhandled failures come back as RFC 9457 ProblemDetails too, so a caller never has
+// to parse one error shape for expected problems and an empty 500 for everything else.
+builder.Services.AddProblemDetails();
+
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 builder.Services.AddSingleton<IShortCodeGenerator, ShortCodeGenerator>();
@@ -20,15 +25,34 @@ builder.Services.AddScoped<IUrlService, UrlService>();
 
 var app = builder.Build();
 
+app.UseExceptionHandler();
+
 await DbInitializer.MigrateAsync(app.Services);
 
 app.MapPost("/api/urls", async (ShortenRequest request, IUrlService urls, HttpRequest httpRequest) =>
 {
-    var shortUrl = await urls.ShortenAsync(request.Url ?? string.Empty);
+    ShortUrl? shortUrl;
+
+    try
+    {
+        shortUrl = await urls.ShortenAsync(request.Url ?? string.Empty);
+    }
+    catch (ShortCodeExhaustedException)
+    {
+        // 503 rather than 500: nothing is broken, the generator just lost several draws in
+        // a row, and retrying the same request is a reasonable thing for a caller to do.
+        return Results.Problem(
+            title: "Could not allocate a short code",
+            detail: "The service could not find an unused short code. Please retry.",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
 
     if (shortUrl is null)
     {
-        return Results.BadRequest();
+        return Results.Problem(
+            title: "Invalid URL",
+            detail: $"'url' must be an absolute http or https URL of at most {UrlValidator.MaxUrlLength} characters.",
+            statusCode: StatusCodes.Status400BadRequest);
     }
 
     var response = ShortUrlResponse.From(shortUrl, httpRequest);
@@ -46,7 +70,10 @@ app.MapGet("/api/urls/{code}", async (string code, IUrlService urls, HttpRequest
     // Deliberately does not count as a click: this is the record about the link, not a use
     // of it, and inflating the counter from the stats page would make the number meaningless.
     return shortUrl is null
-        ? Results.NotFound()
+        ? Results.Problem(
+            title: "Unknown short code",
+            detail: $"No short link exists for code '{code}'.",
+            statusCode: StatusCodes.Status404NotFound)
         : Results.Ok(ShortUrlResponse.From(shortUrl, httpRequest));
 });
 

@@ -57,8 +57,7 @@ public class UrlService : IUrlService
             }
         }
 
-        throw new InvalidOperationException(
-            $"Could not allocate a free short code in {MaxInsertAttempts} attempts.");
+        throw new ShortCodeExhaustedException(MaxInsertAttempts);
     }
 
     public Task<ShortUrl?> GetByCodeAsync(string code) =>
