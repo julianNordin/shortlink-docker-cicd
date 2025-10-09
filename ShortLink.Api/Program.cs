@@ -39,6 +39,17 @@ app.MapPost("/api/urls", async (ShortenRequest request, IUrlService urls, HttpRe
     return Results.Created($"/api/urls/{response.Code}", response);
 });
 
+app.MapGet("/api/urls/{code}", async (string code, IUrlService urls, HttpRequest httpRequest) =>
+{
+    var shortUrl = await urls.GetByCodeAsync(code);
+
+    // Deliberately does not count as a click: this is the record about the link, not a use
+    // of it, and inflating the counter from the stats page would make the number meaningless.
+    return shortUrl is null
+        ? Results.NotFound()
+        : Results.Ok(ShortUrlResponse.From(shortUrl, httpRequest));
+});
+
 app.MapGet("/{code}", async (string code, IUrlService urls) =>
 {
     var shortUrl = await urls.ResolveAndCountClickAsync(code);
