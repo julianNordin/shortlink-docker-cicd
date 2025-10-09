@@ -86,8 +86,8 @@ ShortLink.Api.Tests/      # xUnit unit + integration tests
 - [x] Phase 01 — Solution scaffold, test project, README
 - [x] Phase 02 — Domain model and short-code generation
 - [x] Phase 03 — Dev PostgreSQL via Docker Compose
-- [ ] Phase 04 — EF Core + Npgsql persistence and first migration
-- [ ] Phase 05 — API endpoints: shorten, redirect, click counter, stats
+- [x] Phase 04 — EF Core + Npgsql persistence and first migration
+- [x] Phase 05 — API endpoints: shorten, redirect, click counter, stats
 - [ ] Phase 06 — Unit tests and Testcontainers integration tests
 - [ ] Phase 07 — Multi-stage Dockerfile
 - [ ] Phase 08 — Whole stack in Docker Compose
