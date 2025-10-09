@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ShortLink.Api.Contracts;
 using ShortLink.Api.Data;
 using ShortLink.Api.Services;
 
@@ -20,5 +21,22 @@ builder.Services.AddScoped<IUrlService, UrlService>();
 var app = builder.Build();
 
 await DbInitializer.MigrateAsync(app.Services);
+
+app.MapPost("/api/urls", async (ShortenRequest request, IUrlService urls, HttpRequest httpRequest) =>
+{
+    var shortUrl = await urls.ShortenAsync(request.Url ?? string.Empty);
+
+    if (shortUrl is null)
+    {
+        return Results.BadRequest();
+    }
+
+    var response = ShortUrlResponse.From(shortUrl, httpRequest);
+
+    // Location points at the stats resource rather than at the short link. 201 Location
+    // means "where the thing you just created can be fetched", and fetching the short link
+    // gives you a redirect to somewhere else entirely, not a representation of the record.
+    return Results.Created($"/api/urls/{response.Code}", response);
+});
 
 app.Run();
