@@ -39,4 +39,15 @@ app.MapPost("/api/urls", async (ShortenRequest request, IUrlService urls, HttpRe
     return Results.Created($"/api/urls/{response.Code}", response);
 });
 
+app.MapGet("/{code}", async (string code, IUrlService urls) =>
+{
+    var shortUrl = await urls.ResolveAndCountClickAsync(code);
+
+    // 302, not 301. A permanent redirect is cached by the browser, so every click after the
+    // first would never reach this app and the counter would simply stop moving.
+    return shortUrl is null
+        ? Results.NotFound()
+        : Results.Redirect(shortUrl.TargetUrl);
+});
+
 app.Run();
