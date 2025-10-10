@@ -89,3 +89,7 @@ app.MapGet("/{code}", async (string code, IUrlService urls) =>
 });
 
 app.Run();
+
+// Top-level statements compile into an internal Program class, which WebApplicationFactory
+// cannot reach. Declaring it public here is what lets the test project spin the real app up.
+public partial class Program;
