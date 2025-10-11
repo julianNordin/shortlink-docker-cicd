@@ -1,0 +1,22 @@
+# Host build output. Copying these into the image would ship Windows-built binaries into a
+# Linux container and, worse, let a stale obj/ defeat the restore layer's cache.
+**/bin/
+**/obj/
+
+# Not needed to build, and .git in particular is large and changes on every commit, which
+# would invalidate the build context cache constantly.
+.git/
+.gitattributes
+.gitignore
+.github/
+.vs/
+.vscode/
+**/*.user
+
+# Compose and docs describe how to run the image; they play no part in building it.
+docker-compose.yml
+Dockerfile
+.dockerignore
+.env
+.env.example
+README.md
