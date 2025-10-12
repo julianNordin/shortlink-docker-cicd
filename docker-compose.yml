@@ -1,5 +1,5 @@
-# Dev dependencies only at this stage: the API still runs on the host via `dotnet run`.
-# The api service joins this file in Phase 08.
+# The whole stack: `docker compose up` builds the API image, starts PostgreSQL, waits for it
+# to be healthy, and runs the API against it. No .NET SDK needed on the host.
 services:
   db:
     image: postgres:16-alpine
@@ -25,6 +25,24 @@ services:
       # Named volume, not a bind mount: Postgres needs Linux file permissions that a
       # Windows host directory can't provide.
       - pgdata:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+    container_name: shortlink-api
+    environment:
+      # Host is the service name, resolved on the Compose network - not localhost, which
+      # inside this container would mean the API container itself. The port is always 5432
+      # here; POSTGRES_PORT only remaps the host side.
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB:-shortlink};Username=${POSTGRES_USER:-shortlink};Password=${POSTGRES_PASSWORD:-shortlink}"
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      db:
+        # Not just `depends_on: [db]`, which waits for the container to start rather than for
+        # Postgres to accept connections. The API applies migrations at startup, so starting a
+        # few seconds early means it throws instead of waiting.
+        condition: service_healthy
 
 volumes:
   pgdata:
