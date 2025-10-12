@@ -29,28 +29,56 @@ tested, built, and published without anyone touching a terminal.
 
 ## Getting started
 
-**Prerequisites:** [.NET 9 SDK](https://dotnet.microsoft.com/download) and Docker Desktop.
+**Prerequisites:** Docker Desktop. That is the whole list — the API is compiled inside the
+image, so no .NET SDK is needed just to run this.
 
 ```bash
 git clone https://github.com/julianNordin/shortlink-docker-cicd.git
 cd shortlink-docker-cicd
-dotnet build
-dotnet test
+docker compose up --build
 ```
 
-Only PostgreSQL is containerised at this stage — the API still runs on the host with
-`dotnet run`. Phase 08 moves the whole stack into Compose.
-
-## Development database
-
-Postgres runs as a container, so there is nothing to install on the host:
+That builds the API image, starts PostgreSQL, waits for it to report healthy, then runs the API
+against it on <http://localhost:8080>. The schema is created on first start.
 
 ```bash
-docker compose up -d db
+# Shorten a URL — 201, with the short link in the body and Location pointing at its stats.
+curl -i -X POST localhost:8080/api/urls -H 'Content-Type: application/json' -d '{"url":"https://example.com/a/long/page"}'
+
+# Follow it — 302 to the target, and the click is counted.
+curl -i localhost:8080/<code>
+
+# Stats for a code — reading these does not itself count as a click.
+curl -s localhost:8080/api/urls/<code>
 ```
 
+### Endpoints
+
+| Method | Path | Behaviour |
+|---|---|---|
+| `POST` | `/api/urls` | 201 + `Location`, or 400 `ProblemDetails` for anything that is not an absolute http(s) URL |
+| `GET` | `/{code}` | 302 to the target and counts the click; 404 if unknown |
+| `GET` | `/api/urls/{code}` | Stats for the code; 404 `ProblemDetails` if unknown |
+
+## Working on the app
+
+With the .NET 9 SDK on the host you can run the API directly and keep only the database in a
+container — quicker to iterate on, and the debugger attaches normally:
+
+```bash
+docker compose up -d db                # just PostgreSQL
+dotnet run --project ShortLink.Api     # reads appsettings.Development.json
+dotnet test                            # unit tests + integration tests on a throwaway container
+```
+
+`dotnet test` starts its own PostgreSQL container through Testcontainers, so it neither needs
+nor touches the Compose database.
+
+### The database container
+
 First start takes a few seconds while `initdb` creates the data directory. The service has a
-`pg_isready` healthcheck, so Compose can tell you when it is actually ready:
+`pg_isready` healthcheck, so Compose can tell you when it is genuinely ready rather than merely
+started:
 
 ```bash
 docker compose ps                                  # STATUS column shows (healthy)
@@ -69,7 +97,7 @@ Data lives in a named volume rather than a host directory, because Postgres need
 ownership that a Windows folder cannot provide. It survives restarts:
 
 ```bash
-docker compose down     # stop the container, keep the data
+docker compose down     # stop everything, keep the data
 docker compose down -v  # also delete the volume; next start is an empty database
 ```
 
@@ -90,7 +118,7 @@ ShortLink.Api.Tests/      # xUnit unit + integration tests
 - [x] Phase 05 — API endpoints: shorten, redirect, click counter, stats
 - [x] Phase 06 — Unit tests and Testcontainers integration tests
 - [x] Phase 07 — Multi-stage Dockerfile
-- [ ] Phase 08 — Whole stack in Docker Compose
+- [x] Phase 08 — Whole stack in Docker Compose
 - [ ] Phase 09 — GitHub Actions: restore → build → test
 - [ ] Phase 10 — Integration tests running in CI
 - [ ] Phase 11 — Docker image built in CI
