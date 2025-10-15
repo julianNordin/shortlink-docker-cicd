@@ -1,5 +1,7 @@
 # shortlink-docker-cicd
 
+[![CI](https://github.com/julianNordin/shortlink-docker-cicd/actions/workflows/ci.yml/badge.svg)](https://github.com/julianNordin/shortlink-docker-cicd/actions/workflows/ci.yml)
+
 A deliberately tiny URL shortener, built as the vehicle for a real containerisation and CI/CD
 setup: multi-stage Docker build, Docker Compose, PostgreSQL, and a GitHub Actions pipeline that
 publishes images to GitHub Container Registry.
@@ -119,7 +121,7 @@ ShortLink.Api.Tests/      # xUnit unit + integration tests
 - [x] Phase 06 — Unit tests and Testcontainers integration tests
 - [x] Phase 07 — Multi-stage Dockerfile
 - [x] Phase 08 — Whole stack in Docker Compose
-- [ ] Phase 09 — GitHub Actions: restore → build → test
+- [x] Phase 09 — GitHub Actions: restore → build → test
 - [ ] Phase 10 — Integration tests running in CI
 - [ ] Phase 11 — Docker image built in CI
 - [ ] Phase 12 — Image published to GHCR
