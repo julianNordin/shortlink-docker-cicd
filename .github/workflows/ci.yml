@@ -20,6 +20,16 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
+      # Keyed on the project files, since those determine the package set. A miss only
+      # costs a slower restore - it can never fail the run - so there is no lock file to
+      # keep in sync, which would be one more thing to break on a Dependabot bump.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
       - name: Restore
         run: dotnet restore
 
