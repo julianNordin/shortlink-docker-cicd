@@ -482,3 +482,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Test result output (trx, coverage) - produced by `dotnet test`, uploaded by CI
+TestResults/

@@ -39,5 +39,20 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
+      # No `services:` block for Postgres. The integration tests start their own container
+      # through Testcontainers, and ubuntu-latest runners already have Docker running - a
+      # service container here would sit idle while the tests talked to a different one.
       - name: Test
-        run: dotnet test --configuration Release --no-build
+        run: >
+          dotnet test --configuration Release --no-build
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory ${{ github.workspace }}/TestResults
+
+      # always(), because a failed run is exactly when someone needs to read these.
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ${{ github.workspace }}/TestResults/*.trx
+          if-no-files-found: error
