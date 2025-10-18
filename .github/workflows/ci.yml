@@ -46,6 +46,7 @@ jobs:
         run: >
           dotnet test --configuration Release --no-build
           --logger "trx;LogFileName=test-results.trx"
+          --logger "GitHubActions;summary.includePassedTests=false"
           --results-directory ${{ github.workspace }}/TestResults
 
       # always(), because a failed run is exactly when someone needs to read these.
