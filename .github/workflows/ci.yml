@@ -79,3 +79,8 @@ jobs:
           # Building only. Publishing to GHCR arrives in its own step once this is proven.
           push: false
           tags: shortlink-api:ci
+          # Without this every run starts from an empty layer cache and re-runs the NuGet
+          # restore inside the image. mode=max keeps the intermediate build-stage layers as
+          # well as the final ones, which is where the restore actually lives.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

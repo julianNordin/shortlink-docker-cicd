@@ -123,7 +123,7 @@ ShortLink.Api.Tests/      # xUnit unit + integration tests
 - [x] Phase 08 — Whole stack in Docker Compose
 - [x] Phase 09 — GitHub Actions: restore → build → test
 - [x] Phase 10 — Integration tests running in CI
-- [ ] Phase 11 — Docker image built in CI
+- [x] Phase 11 — Docker image built in CI
 - [ ] Phase 12 — Image published to GHCR
 - [ ] Phase 13 — Health checks and container ergonomics
 - [ ] Phase 14 — Branch protection and pull request flow
