@@ -57,3 +57,25 @@ jobs:
           name: test-results
           path: ${{ github.workspace }}/TestResults/*.trx
           if-no-files-found: error
+
+  build-image:
+    name: Build image
+    runs-on: ubuntu-latest
+    # No point building an image from code that failed its tests, and gating this way keeps
+    # a red test run from producing an artifact that looks releasable.
+    needs: build-and-test
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # Building only. Publishing to GHCR arrives in its own step once this is proven.
+          push: false
+          tags: shortlink-api:ci
