@@ -102,12 +102,14 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build the image
+      - name: Build and push the image
         uses: docker/build-push-action@v6
         with:
           context: .
-          # Building only. Publishing to GHCR arrives in its own step once this is proven.
-          push: false
+          # Pushes on a push to main; a pull_request run builds and throws the image away.
+          # Pull requests are untrusted input, and there is no reason a proposal should be
+          # able to overwrite a published tag.
+          push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # Without this every run starts from an empty layer cache and re-runs the NuGet
