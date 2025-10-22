@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+# Least privilege by default. The one job that needs to write a package raises it itself.
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     name: Build and test
@@ -64,6 +68,9 @@ jobs:
     # No point building an image from code that failed its tests, and gating this way keeps
     # a red test run from producing an artifact that looks releasable.
     needs: build-and-test
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Check out the repository
@@ -71,6 +78,16 @@ jobs:
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
+
+      # Skipped on pull requests. A PR from a fork must never be able to authenticate as
+      # this repository and publish under its name.
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Build the image
         uses: docker/build-push-action@v6
