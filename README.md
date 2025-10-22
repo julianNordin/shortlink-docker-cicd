@@ -103,6 +103,25 @@ docker compose down     # stop everything, keep the data
 docker compose down -v  # also delete the volume; next start is an empty database
 ```
 
+## Published image
+
+Every push to `main` that passes its tests publishes an image to GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/juliannordin/shortlink-docker-cicd:latest
+```
+
+Tags are `latest` (default branch only), `sha-<short>` for a specific commit, and the branch
+name. The owner is lowercased because GHCR rejects mixed-case image names.
+
+The image needs a database — point it at one with `ConnectionStrings__Default`:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e ConnectionStrings__Default="Host=<host>;Port=5432;Database=shortlink;Username=shortlink;Password=shortlink" \
+  ghcr.io/juliannordin/shortlink-docker-cicd:latest
+```
+
 ## Project structure
 
 ```
@@ -124,7 +143,7 @@ ShortLink.Api.Tests/      # xUnit unit + integration tests
 - [x] Phase 09 — GitHub Actions: restore → build → test
 - [x] Phase 10 — Integration tests running in CI
 - [x] Phase 11 — Docker image built in CI
-- [ ] Phase 12 — Image published to GHCR
+- [x] Phase 12 — Image published to GHCR
 - [ ] Phase 13 — Health checks and container ergonomics
 - [ ] Phase 14 — Branch protection and pull request flow
 - [ ] Phase 15 — Image hardening and dependency automation
