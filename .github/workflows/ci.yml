@@ -89,13 +89,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      # metadata-action rather than a hand-written tags: list, and not only for convenience.
+      # GHCR rejects mixed-case names, and this repository's owner is julianNordin - a raw
+      # ghcr.io/${{ github.repository }} would be refused. metadata-action lowercases it.
+      - name: Derive image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
       - name: Build the image
         uses: docker/build-push-action@v6
         with:
           context: .
           # Building only. Publishing to GHCR arrives in its own step once this is proven.
           push: false
-          tags: shortlink-api:ci
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           # Without this every run starts from an empty layer cache and re-runs the NuGet
           # restore inside the image. mode=max keeps the intermediate build-stage layers as
           # well as the final ones, which is where the restore actually lives.
