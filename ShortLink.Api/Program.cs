@@ -20,6 +20,12 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
+// Probes the database rather than just answering 200. An API that cannot reach Postgres
+// can serve nothing useful, so reporting itself healthy would make the check a liability -
+// an orchestrator would keep routing traffic to an instance that fails every request.
+builder.Services.AddHealthChecks()
+    .AddNpgSql(connectionString, name: "postgres", tags: ["ready"]);
+
 builder.Services.AddSingleton<IShortCodeGenerator, ShortCodeGenerator>();
 builder.Services.AddScoped<IUrlService, UrlService>();
 
@@ -28,6 +34,8 @@ var app = builder.Build();
 app.UseExceptionHandler();
 
 await DbInitializer.MigrateAsync(app.Services);
+
+app.MapHealthChecks("/health");
 
 app.MapPost("/api/urls", async (ShortenRequest request, IUrlService urls, HttpRequest httpRequest) =>
 {
