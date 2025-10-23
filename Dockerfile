@@ -19,6 +19,13 @@ RUN dotnet publish ShortLink.Api/ShortLink.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
+# The runtime image ships no HTTP client at all - no curl, no wget - and HEALTHCHECK needs
+# one to ask the app whether it is actually healthy rather than merely running. Installed
+# here while still root, because USER app comes below.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/publish .
 
 # `app` is the non-root user that ships with the .NET runtime images. Running as root in a
@@ -29,5 +36,11 @@ USER app
 # reachable from within that container, so published ports connect to nothing.
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
+
+# start-period covers the startup migration, which on a cold volume takes a few seconds -
+# failures before it elapses do not count against retries. localhost works here because the
+# check runs inside the container's own network namespace.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl --fail --silent http://localhost:8080/health || exit 1
 
 ENTRYPOINT ["dotnet", "ShortLink.Api.dll"]
