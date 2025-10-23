@@ -144,7 +144,7 @@ ShortLink.Api.Tests/      # xUnit unit + integration tests
 - [x] Phase 10 — Integration tests running in CI
 - [x] Phase 11 — Docker image built in CI
 - [x] Phase 12 — Image published to GHCR
-- [ ] Phase 13 — Health checks and container ergonomics
+- [x] Phase 13 — Health checks and container ergonomics
 - [ ] Phase 14 — Branch protection and pull request flow
 - [ ] Phase 15 — Image hardening and dependency automation
 - [ ] Phase 16 — README, badges, final polish
