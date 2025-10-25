@@ -122,6 +122,21 @@ docker run --rm -p 8080:8080 \
   ghcr.io/juliannordin/shortlink-docker-cicd:latest
 ```
 
+## Branch protection
+
+`main` is protected. The rules that matter:
+
+| Rule | Why |
+|---|---|
+| Require a pull request | No direct pushes to `main`, including by the repository owner |
+| Require the `Build and test` check | A red pipeline blocks the merge button |
+| Require linear history | Keeps `git log --graph` a straight line |
+| Rebase and squash merges only | Merge commits are disabled, which is what enforces the above |
+
+Linear history is not a stylistic preference here. The history-rewriting tooling this
+repository is built with walks commits with a single parent each, and a merge commit breaks
+that walk outright.
+
 ## Project structure
 
 ```
@@ -145,7 +160,7 @@ ShortLink.Api.Tests/      # xUnit unit + integration tests
 - [x] Phase 11 — Docker image built in CI
 - [x] Phase 12 — Image published to GHCR
 - [x] Phase 13 — Health checks and container ergonomics
-- [ ] Phase 14 — Branch protection and pull request flow
+- [x] Phase 14 — Branch protection and pull request flow
 - [ ] Phase 15 — Image hardening and dependency automation
 - [ ] Phase 16 — README, badges, final polish
 
