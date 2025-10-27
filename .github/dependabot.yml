@@ -1,0 +1,40 @@
+version: 2
+
+updates:
+  # Action versions go stale quietly - nothing fails, the workflow just keeps running an old
+  # release with old bugs until someone looks.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+    # One PR per package would drown the repository; EF Core and Npgsql also need to move
+    # together, since the provider pins the EF Core version it was built against.
+    groups:
+      efcore:
+        patterns:
+          - Microsoft.EntityFrameworkCore*
+          - Npgsql.EntityFrameworkCore*
+      test:
+        patterns:
+          - xunit*
+          - Microsoft.NET.Test.Sdk
+          - Testcontainers*
+          - coverlet*
+
+  # Watches the base images in the Dockerfile, which are the part most likely to carry a CVE
+  # and the part nobody thinks to check.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
