@@ -10,6 +10,12 @@ on:
 permissions:
   contents: read
 
+# Pushing twice in quick succession leaves the first run building an image nobody will use.
+# Grouped per ref, so main and each PR cancel only their own superseded runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     name: Build and test
