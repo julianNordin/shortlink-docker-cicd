@@ -1,5 +1,5 @@
 # ---- build ----
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 WORKDIR /src
 
 # Only the project file first. This layer's cache key is the .csproj alone, so editing C#
@@ -15,16 +15,10 @@ RUN dotnet publish ShortLink.Api/ShortLink.Api.csproj \
 
 # ---- runtime ----
 # aspnet, not sdk: the runtime image is a fraction of the size and carries no compiler,
-# no NuGet cache, and no source.
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+# no NuGet cache, and no source. alpine on top of that, which also means a much smaller
+# package surface to carry CVEs.
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
 WORKDIR /app
-
-# The runtime image ships no HTTP client at all - no curl, no wget - and HEALTHCHECK needs
-# one to ask the app whether it is actually healthy rather than merely running. Installed
-# here while still root, because USER app comes below.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/publish .
 
@@ -37,11 +31,15 @@ USER app
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
+# busybox wget, which alpine already ships - so unlike the Debian runtime there is no
+# package to install just to ask /health a question. --spider discards the body and still
+# fails on a non-2xx status.
+#
 # start-period covers the startup migration, which on a cold volume takes a few seconds -
 # failures before it elapses do not count against retries. localhost works here because the
 # check runs inside the container's own network namespace.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD curl --fail --silent http://localhost:8080/health || exit 1
+    CMD wget --quiet --spider http://localhost:8080/health || exit 1
 
 # Exec form, not shell form. Shell form would run this under /bin/sh -c, making sh PID 1;
 # sh does not forward SIGTERM to its child, so `docker compose down` would wait out the full
