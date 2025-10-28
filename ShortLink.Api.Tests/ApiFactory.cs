@@ -10,10 +10,10 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private const string ConnectionStringVariable = "ConnectionStrings__Default";
 
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        // Same image as docker-compose.yml, so the tests exercise the version that runs.
-        .WithImage("postgres:16-alpine")
-        .Build();
+    // Image goes to the constructor: the parameterless overload plus WithImage is obsolete.
+    // Same image as docker-compose.yml, so the tests exercise the version that runs.
+    private readonly PostgreSqlContainer _postgres =
+        new PostgreSqlBuilder("postgres:16-alpine").Build();
 
     public async Task InitializeAsync()
     {
