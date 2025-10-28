@@ -1,12 +1,13 @@
 # shortlink-docker-cicd
 
 [![CI](https://github.com/julianNordin/shortlink-docker-cicd/actions/workflows/ci.yml/badge.svg)](https://github.com/julianNordin/shortlink-docker-cicd/actions/workflows/ci.yml)
+[![GHCR](https://img.shields.io/badge/ghcr.io-shortlink--docker--cicd-2496ED?logo=docker&logoColor=white)](https://github.com/julianNordin/shortlink-docker-cicd/pkgs/container/shortlink-docker-cicd)
 
 A deliberately tiny URL shortener, built as the vehicle for a real containerisation and CI/CD
 setup: multi-stage Docker build, Docker Compose, PostgreSQL, and a GitHub Actions pipeline that
 publishes images to GitHub Container Registry.
 
-**Status:** 🚧 In progress. See [Roadmap](#roadmap) below.
+**Status:** ✅ Complete — all 16 phases. See [Roadmap](#roadmap) below.
 
 ## Why this project
 
@@ -28,6 +29,41 @@ tested, built, and published without anyone touching a terminal.
 | Orchestration | Docker Compose (api + db) |
 | CI/CD | GitHub Actions → GitHub Container Registry |
 | Testing | xUnit, with Testcontainers for real-Postgres integration tests |
+
+## Architecture
+
+```
+                                          +-----------------------------+
+   client  --- POST /api/urls ------->    |                             |
+           <-- 201 + short link ------    |   ShortLink.Api             |
+                                          |   (Minimal API)             |
+                                          |                             |
+   browser --- GET /{code} ---------->    |   UrlService                |
+           <-- 302 to target ---------    |     +- Base62 generator     |
+                                          |     +- URL validator        |
+                                          +-------------+---------------+
+                                                        |  EF Core + Npgsql
+                                          +-------------+---------------+
+                                          |   PostgreSQL 16             |
+                                          |   ShortUrls                 |
+                                          |   unique index on Code      |
+                                          +-----------------------------+
+```
+
+Both boxes are containers; `docker compose up` starts them together. The API applies its own
+migrations at startup, so the database schema arrives with the app rather than as a separate
+deployment step.
+
+Three decisions carry most of the weight:
+
+- **Codes are random Base62, not an encoded row id.** Sequential codes would let anyone walk
+  the entire table by counting up from `1`. Seven characters gives 62^7 (~3.5 × 10^12), and
+  the unique index on `Code` turns the rare collision into a retried insert.
+- **The URL scheme is an allow-list**, absolute `http`/`https` only. Without it the service
+  happily shortens `javascript:` and `data:` URIs, and `UriKind.Absolute` additionally blocks
+  relative paths like `/admin` that would redirect back into the app.
+- **Clicks are counted by the database**, with `UPDATE ... SET ClickCount = ClickCount + 1`
+  rather than a load-modify-save, which silently drops clicks whenever two redirects overlap.
 
 ## Getting started
 
@@ -122,6 +158,37 @@ docker run --rm -p 8080:8080 \
   ghcr.io/juliannordin/shortlink-docker-cicd:latest
 ```
 
+## The pipeline
+
+```
+   push to main --+
+                  +--> +------------------+     +----------------------+
+   pull request --+    |  Build and test  |---->|     Build image      |
+                       |                  |     |                      |
+                       |  restore         |     |  buildx + gha cache  |
+                       |  build           |     |  metadata-action     |
+                       |  test            |     |    tags              |
+                       |    +- unit       |     |                      |
+                       |    +- Testcont-  |     |  push to GHCR        |
+                       |       ainers pg  |     |    -- main only --   |
+                       +--------+---------+     +----------------------+
+                                |
+                                +--> test-results.trx artifact
+                                     + job summary
+```
+
+Things worth pointing out:
+
+- **The integration tests run against real PostgreSQL in CI**, not a stubbed provider.
+  Testcontainers starts its own database, and `ubuntu-latest` already runs Docker, so no
+  `services:` block is needed.
+- **The image job is gated on the test job** with `needs:`, so a red run cannot produce an
+  image that looks releasable.
+- **Pull requests build the image but never push it.** A proposal should not be able to
+  overwrite a published tag.
+- **Superseded runs cancel**, keyed per ref, so a second push does not leave the first run
+  building an image nobody will use.
+
 ## Branch protection
 
 `main` is protected. The rules that matter:
@@ -141,8 +208,26 @@ that walk outright.
 
 ```
 ShortLink.sln
-ShortLink.Api/            # the minimal API
-ShortLink.Api.Tests/      # xUnit unit + integration tests
+ShortLink.Api/
+  Program.cs                    # the whole API surface: 3 endpoints + /health
+  Contracts/                    # request and response shapes, kept off the entity
+  Domain/ShortUrl.cs
+  Services/                     # code generation, URL validation, the EF-backed store
+  Data/                         # AppDbContext, DbInitializer, Migrations/
+ShortLink.Api.Tests/
+  ShortCodeGeneratorTests.cs    # unit
+  UrlValidationTests.cs         # unit
+  ApiFactory.cs                 # WebApplicationFactory + Testcontainers PostgreSQL
+  EndpointTests.cs              # integration, against a real database
+Dockerfile                      # multi-stage, alpine runtime, non-root, HEALTHCHECK
+.dockerignore
+docker-compose.yml              # api + db, api gated on the db healthcheck
+.env.example
+.github/
+  workflows/ci.yml              # restore -> build -> test -> build image -> push GHCR
+  dependabot.yml
+  pull_request_template.md
+  CODEOWNERS
 ```
 
 ## Roadmap
@@ -162,7 +247,7 @@ ShortLink.Api.Tests/      # xUnit unit + integration tests
 - [x] Phase 13 — Health checks and container ergonomics
 - [x] Phase 14 — Branch protection and pull request flow
 - [x] Phase 15 — Image hardening and dependency automation
-- [ ] Phase 16 — README, badges, final polish
+- [x] Phase 16 — README, badges, final polish
 
 ## License
 
