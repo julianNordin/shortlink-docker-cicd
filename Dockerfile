@@ -17,7 +17,7 @@ RUN dotnet publish ShortLink.Api/ShortLink.Api.csproj \
 # aspnet, not sdk: the runtime image is a fraction of the size and carries no compiler,
 # no NuGet cache, and no source. alpine on top of that, which also means a much smaller
 # package surface to carry CVEs.
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 WORKDIR /app
 
 COPY --from=build /app/publish .
