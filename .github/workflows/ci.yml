@@ -100,7 +100,7 @@ jobs:
       # ghcr.io/${{ github.repository }} would be refused. metadata-action lowercases it.
       - name: Derive image tags
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
