@@ -62,7 +62,7 @@ jobs:
       # always(), because a failed run is exactly when someone needs to read these.
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: ${{ github.workspace }}/TestResults/*.trx
