@@ -1,5 +1,5 @@
 # ---- build ----
-FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
 # Only the project file first. This layer's cache key is the .csproj alone, so editing C#
